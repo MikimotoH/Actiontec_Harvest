@@ -130,28 +130,32 @@ def fileWalker():
             ulog('UPSERT "%(modelName)s", "%(prodName)s", '%glocals())
             driver.back()
             return
-        relDates = getElems('table.supp tr td:nth-child(1)')
-        descs = getElems('table.supp tr td:nth-child(2)')
-        # assert len(relDates)==len(descs)
+        files = getElems('table.supp tr')
         startIdx = getStartIdx()
-        numFiles=len(relDates)
+        numFiles=len(files)
         ulog('numFiles=%s'%numFiles)
         bUpserted=False
         for idx in range(startIdx, numFiles):
-            fwDate=guessDate(relDates[idx].text)
+            try:
+                col=files[idx].find_element_by_css_selector('td:nth-child(1)')
+            except NoSuchElementException:
+                ulog('bypass idx=%s'%idx)
+                continue
+            fwDate=guessDate(col.text)
             if not fwDate:
                 ulog('bypass idx=%s'%idx)
                 continue
-            fileUrl=descs[idx].find_element_by_css_selector('a')
-            fileName=fileUrl.text
-            ulog('fileName="%s"'%fileName)
-            if 'firmware' not in fileName.lower():
+            desc=files[idx].find_element_by_css_selector('td:nth-child(2)')
+            fwDesc=desc.text
+            fileName=desc.find_element_by_css_selector('a')
+            ulog('fileName.text="%s"'%fileName.text)
+            if 'firmware' not in fileName.text.lower():
                 ulog('bypass idx=%s'%idx)
                 continue
-            fwVer = guessVersion(fileUrl.text)
-            fileUrl=fileUrl.get_attribute('href')
+            fwVer = guessVersion(fileName.text)
+            fileUrl=fileName.get_attribute('href')
 
-            fwDesc=descs[idx].text.strip()
+            fwDesc=desc.text.strip()
             trailStr=str(prevTrail+[idx])
             ulog('trail=%s'%trailStr)
             sql("INSERT OR REPLACE INTO TFiles (model,product_name,"
